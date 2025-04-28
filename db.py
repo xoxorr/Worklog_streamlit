@@ -33,6 +33,20 @@ def init_db():
         logs TEXT -- JSON 배열(진행내역)
     )
     ''')
+    # 업무 분류 테이블 추가
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS work_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        main_category TEXT NOT NULL,
+        sub_category TEXT NOT NULL,
+        content TEXT NOT NULL,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        status TEXT NOT NULL,
+        writer TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )
+    ''')
     conn.commit()
     conn.close()
     print("데이터베이스가 초기화되었습니다.")
@@ -146,6 +160,105 @@ def get_case_logs(case_id) -> List[dict]:
     if row and row[0]:
         return json.loads(row[0])
     return []
+
+# 업무 분류 관련 함수
+def add_work_category(main_category, sub_category, content, start_date, end_date, status, writer):
+    """업무 분류 데이터 추가"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute('''
+    INSERT INTO work_categories 
+    (main_category, sub_category, content, start_date, end_date, status, writer, created_at) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (main_category, sub_category, content, start_date, end_date, status, writer, created_at))
+    conn.commit()
+    last_id = cursor.lastrowid
+    conn.close()
+    return last_id
+
+def get_work_categories(filter_dict=None):
+    """업무 분류 데이터 조회"""
+    conn = sqlite3.connect(DB_PATH)
+    query = "SELECT * FROM work_categories"
+    params = []
+    
+    if filter_dict:
+        conditions = []
+        for key, value in filter_dict.items():
+            if value:
+                conditions.append(f"{key} = ?")
+                params.append(value)
+        
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+    
+    query += " ORDER BY created_at DESC"
+    df = pd.read_sql_query(query, conn, params=params)
+    conn.close()
+    return df
+
+def update_work_category(category_id, main_category=None, sub_category=None, content=None, 
+                         start_date=None, end_date=None, status=None):
+    """업무 분류 데이터 수정"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # 현재 데이터 조회
+    cursor.execute('SELECT * FROM work_categories WHERE id=?', (category_id,))
+    current_data = cursor.fetchone()
+    
+    if not current_data:
+        conn.close()
+        return False
+    
+    # 업데이트할 필드와 값 목록 생성
+    updates = []
+    params = []
+    
+    if main_category is not None:
+        updates.append("main_category = ?")
+        params.append(main_category)
+    
+    if sub_category is not None:
+        updates.append("sub_category = ?")
+        params.append(sub_category)
+    
+    if content is not None:
+        updates.append("content = ?")
+        params.append(content)
+    
+    if start_date is not None:
+        updates.append("start_date = ?")
+        params.append(start_date)
+    
+    if end_date is not None:
+        updates.append("end_date = ?")
+        params.append(end_date)
+    
+    if status is not None:
+        updates.append("status = ?")
+        params.append(status)
+    
+    # 업데이트할 내용이 있을 경우만 실행
+    if updates:
+        query = f"UPDATE work_categories SET {', '.join(updates)} WHERE id = ?"
+        params.append(category_id)
+        cursor.execute(query, params)
+        conn.commit()
+        
+    conn.close()
+    return True
+
+def delete_work_category(category_id):
+    """업무 분류 데이터 삭제"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM work_categories WHERE id=?', (category_id,))
+    affected_rows = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return affected_rows > 0
 
 # 데이터베이스 초기화 (앱 시작 시 항상 실행)
 init_db() 

@@ -22,6 +22,32 @@ import utils
 # 상수 설정
 CONFIG_FILE = Path("config.json")
 
+# 대분류-소분류 매핑
+CATEGORY_MAPPING = {
+    "사건처리": [
+        "수집(센터내)", "수집(출장)",
+        "분석(PC)", "분석(모바일)", "분석(블랙박스)", "분석(CCTV)", "분석(기타)",
+        "검토(메신저)", "검토(사진)", "검토(영상)", "검토(문서)", "검토(로그)",
+        "포렌식 회의", "의뢰인 면담",
+        "보고서작성(요약)", "보고서작성(최종)"
+    ],
+    "회의": [
+        "내부회의", "변호사협업회의", "고객회의"
+    ],
+    "신규상담": [
+        "전화상담", "내방상담"
+    ],
+    "리서치/개발": [
+        "기술리서치", "문서작성", "도구개발"
+    ],
+    "관리업무": [
+        "기록관리", "사내문서정리", "시스템관리"
+    ],
+    "교육/세미나": [
+        "사내교육", "외부세미나참석"
+    ]
+}
+
 """
 업무기록 관리 시스템
 """
@@ -57,7 +83,7 @@ def main():
         st.title("📝 디지털포렌식 업무 기록")
         menu = st.radio(
             "메뉴",
-            ["📥 일일 업무 입력", "📋 일일 취합 보고", "🗂️ 사건 입력", "🗂️ 사건 관리"],
+            ["📥 일일 업무 입력", "📋 일일 취합 보고", "🗂️ 사건 입력", "🗂️ 사건 관리", "📊 업무 기록"],
             key="menu_radio"
         )
 
@@ -70,6 +96,8 @@ def main():
         show_case_input()
     elif menu == "🗂️ 사건 관리":
         show_case_manage()
+    elif menu == "📊 업무 기록":
+        show_work_category_form()
 
 def show_daily_work_input():
     """일일 업무 입력 폼 표시"""
@@ -216,6 +244,161 @@ def show_case_manage():
             if st.button("상태/종료일 저장", key=f"save_status_{row['id']}"):
                 db.update_case_status(row['id'], new_status, end_date.strftime("%Y-%m-%d") if end_date else None)
                 st.success("상태/종료일이 저장되었습니다. 새로고침 해주세요.")
+
+def show_work_category_form():
+    """업무 기록 폼 표시"""
+    st.header("📊 업무 기록")
+    
+    # 작성자 옵션 목록
+    name_options = ["신용학", "김경태", "박종찬", "이서영", "유다정", "임기택"]
+    
+    # 세션 상태 초기화
+    if "work_category_saved" not in st.session_state:
+        st.session_state.work_category_saved = False
+    
+    if "selected_main_category" not in st.session_state:
+        st.session_state.selected_main_category = list(CATEGORY_MAPPING.keys())[0]
+    
+    # 저장 성공 알림 (새로고침 후 1회 표시)
+    if st.session_state.work_category_saved:
+        st.success("✅ 업무 기록이 저장되었습니다.")
+        st.session_state.work_category_saved = False
+    
+    # 폼 외부에서 대분류 선택 (콜백 사용)
+    def on_main_category_change():
+        st.session_state.selected_main_category = st.session_state.main_category_outside
+    
+    # 폼 외부에서 대분류 선택 위젯
+    st.selectbox(
+        "대분류 선택", 
+        list(CATEGORY_MAPPING.keys()),
+        key="main_category_outside",
+        on_change=on_main_category_change
+    )
+    
+    with st.form("work_category_form"):
+        # 작성자 입력
+        writer = st.selectbox("작성자", name_options)
+        
+        # 폼 내부에서는 대분류를 session_state에서 가져오기만 하고, 콜백 없이 표시
+        main_category = st.selectbox(
+            "대분류 선택", 
+            list(CATEGORY_MAPPING.keys()),
+            key="main_category",
+            index=list(CATEGORY_MAPPING.keys()).index(st.session_state.selected_main_category)
+        )
+        
+        # 소분류 선택 (대분류에 따라 동적으로 변경)
+        sub_category = st.selectbox(
+            "소분류 선택",
+            CATEGORY_MAPPING[st.session_state.selected_main_category]
+        )
+        
+        # 업무 내용 입력
+        content = st.text_area("업무 내용", height=150)
+        
+        # 시작일/종료일 입력
+        col1, col2 = st.columns(2)
+        with col1:
+            start_date = st.date_input("시작일", value=datetime.now())
+        with col2:
+            end_date = st.date_input("종료일", value=datetime.now())
+        
+        # 진행 상태 선택
+        status = st.selectbox("진행 상태", ["진행 중", "완료", "미완료"])
+        
+        # 제출 버튼
+        submitted = st.form_submit_button("저장")
+        
+        if submitted:
+            if not writer or not content:
+                st.error("작성자와 업무 내용은 필수입니다.")
+            else:
+                # DB에 저장
+                db.add_work_category(
+                    main_category=main_category,
+                    sub_category=sub_category,
+                    content=content,
+                    start_date=start_date.strftime("%Y-%m-%d"),
+                    end_date=end_date.strftime("%Y-%m-%d"),
+                    status=status,
+                    writer=writer
+                )
+                st.session_state.work_category_saved = True
+                st.rerun()
+    
+    # 기록된 데이터 조회 및 표시
+    st.subheader("기록된 업무 내역")
+    
+    # 필터링 옵션
+    with st.expander("필터 옵션", expanded=False):
+        filter_col1, filter_col2, filter_col3 = st.columns(3)
+        
+        with filter_col1:
+            filter_main = st.selectbox("대분류 필터", ["전체"] + list(CATEGORY_MAPPING.keys()))
+        
+        with filter_col2:
+            # 대분류 선택에 따라 소분류 옵션 변경
+            if filter_main == "전체":
+                filter_sub_options = ["전체"]
+            else:
+                filter_sub_options = ["전체"] + CATEGORY_MAPPING[filter_main]
+            
+            filter_sub = st.selectbox("소분류 필터", filter_sub_options)
+        
+        with filter_col3:
+            filter_status = st.selectbox("상태 필터", ["전체", "진행 중", "완료", "미완료"])
+        
+        filter_writer = st.selectbox("작성자 필터", ["전체"] + name_options)
+    
+    # 필터 적용하여 데이터 조회
+    filter_dict = {}
+    
+    if filter_main != "전체":
+        filter_dict["main_category"] = filter_main
+    
+    if filter_sub != "전체":
+        filter_dict["sub_category"] = filter_sub
+    
+    if filter_status != "전체":
+        filter_dict["status"] = filter_status
+        
+    if filter_writer != "전체":
+        filter_dict["writer"] = filter_writer
+    
+    df = db.get_work_categories(filter_dict)
+    
+    if df.empty:
+        st.info("기록된 업무가 없습니다.")
+    else:
+        # 데이터프레임에서 중요 컬럼만 선택하여 표시
+        display_df = df[["id", "writer", "main_category", "sub_category", "content", "start_date", "end_date", "status"]]
+        display_df.columns = ["ID", "작성자", "대분류", "소분류", "업무내용", "시작일", "종료일", "상태"]
+        
+        # 상태에 따른 스타일링 적용
+        def highlight_status(val):
+            if val == "완료":
+                return "background-color: lightgreen"
+            elif val == "진행 중":
+                return "background-color: lightyellow"
+            elif val == "미완료":
+                return "background-color: lightcoral"
+            return ""
+        
+        # 스타일 적용
+        styled_df = display_df.style.applymap(highlight_status, subset=["상태"])
+        
+        # 테이블 표시
+        st.dataframe(styled_df, use_container_width=True)
+        
+        # 엑셀 다운로드 버튼
+        excel_data = utils.create_excel_report(df)
+        st.download_button(
+            label="Excel로 다운로드",
+            data=excel_data,
+            file_name=f"work_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
 if __name__ == "__main__":
     main() 
