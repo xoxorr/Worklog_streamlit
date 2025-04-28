@@ -1,0 +1,89 @@
+# Python 관련 파일
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 가상환경
+.env
+.venv
+venv/
+ENV/
+env/
+
+# IDE 설정 파일
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+.spyderproject
+.spyproject
+.ropeproject
+
+# 로그 파일
+*.log
+
+# 로컬 설정 파일
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 데이터베이스 파일 (필요한 경우 주석 처리)
+*.db
+*.sqlite
+*.sqlite3
+
+# Streamlit 관련
+.streamlit/secrets.toml
+
+# 윈도우 파일
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# MacOS 파일
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# 캐시 파일
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# 기타 배포 파일
+*.bak
+*.tmp
+*.swp
+*~
+
+# 사용자 설정 폴더 및 파일
+config.json
+credentials/
+uploads/
+reports/
+temp/ 

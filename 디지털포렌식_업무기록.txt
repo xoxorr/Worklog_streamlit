@@ -1,0 +1,54 @@
+디지털포렌식 팀 업무 기록 시스템 개발 DOC
+프로젝트 개요
+- 프로젝트명: 디지털포렌식 팀 업무 기록 시스템
+- 목적: 내부 인원의 업무 기록 자동화 및 비용 청구 근거 확보
+- 목표: 팀원이 매일 업무 내용을 입력하고, 사건별/카테고리별 정리, 키워드 검색 및 기간별 필터링, 검색 결과를 PDF/Excel로 보고서화
+개발환경
+- 개발 언어: Python 3.11+
+- 웹 프레임워크: Streamlit
+- 데이터베이스: SQLite3
+- 주요 라이브러리: pandas, sqlite3, openpyxl, reportlab(optional)
+시스템 아키텍처
+Streamlit 웹 앱 → SQLite DB 저장 → 검색/필터링/시각화 → PDF/Excel 출력
+주요 기능 명세
+1. 입력 기능
+   - 작성자 이름 입력
+   - 작성일 (기본 오늘날짜 자동, 수정 가능)
+   - A/B/C 카테고리 선택
+   - 업무 내용 작성
+   - 사건 시작일 / 종료일 입력
+   - 사건 상태 입력 (진행 중/완료/미완료)
+2. 검색 및 필터링 기능
+   - 키워드 검색 (복수 키워드 AND 검색 지원)
+   - 작성자별, 카테고리별, 기간별, 상태별 필터링
+   - 기간 긴 사건만 필터링
+3. 시각화 기능
+   - 사건별 Gantt Chart 표시
+   - 진행상태 색상 구분
+4. 데이터 출력
+   - 검색 결과 Excel, PDF로 다운로드
+DB 구조 (SQLite3)
+- id (INTEGER, PK)
+- name (TEXT)
+- date (TEXT, YYYY-MM-DD)
+- category (TEXT, A/B/C)
+- content (TEXT)
+- start_date (TEXT, YYYY-MM-DD)
+- end_date (TEXT, YYYY-MM-DD)
+- status (TEXT, 진행 중/완료/미완료)
+기타 고려사항
+- DB 파일은 주기적으로 백업
+- 입력 시 유효성 검사 필요
+- Streamlit 기본 스타일 + 최소한의 UI 튜닝
+- 초반 버전은 로컬 실행 기준
+
+
+
+
+/worklog_streamlit
+ ├── app.py            # Streamlit 메인 파일
+ ├── db.py             # DB 연결 및 함수 관리
+ ├── utils.py          # 검색, 필터링 유틸리티
+ ├── templates/        # (옵션) PDF 양식, 리포트 템플릿
+ ├── worklog.db        # SQLite DB 파일
+ └── requirements.txt  # 필수 패키지 목록
